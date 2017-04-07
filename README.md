@@ -1,10 +1,9 @@
 Introduction
 ============
 
-Welcome to HydraParser. HydraParser is a distributed log search engine. It enables you to search for
-a particular pattern in a file or in a directory containing (log) files. HydraParser is intelligent,
-in the sense that it doesn't do a sequential scan when run over a directory of files. It uses a threaded
-approach whereby it can speed up the search time.
+Welcome to HydraParser. HydraParser is a grep like utility that lets you search for patterns 
+in single files or directories containing files. It is by no means a distributed log search engine
+(atleast as of now). It uses a threaded approach if requested whereby it can speed up the search time.
 
 
 Caveats

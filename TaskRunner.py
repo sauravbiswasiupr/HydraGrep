@@ -13,8 +13,9 @@ class TaskRunner(Thread):
         while True:
             filename, pattern = self.queue.get()
             results = self.parse_log_for_pattern(filename, pattern)
-            for i in results:
-                print i.replace(pattern, colored(pattern, 'red'))
+            if results:
+                for i in results:
+                    print(i.replace(pattern, colored(pattern, 'red')))
 
             self.queue.task_done()
 
@@ -34,7 +35,7 @@ class TaskRunner(Thread):
             f = open(log_file)
             return self.search_occurrences(pattern, f.readlines())
         except Exception as e:
-            print e
+            print(e)
             return None
 
     def search(self, directory, pattern):
@@ -49,4 +50,4 @@ class TaskRunner(Thread):
 
             return results
         except Exception as e:
-            print "Unexpected error occurred: {}".format(e)
+            print("Unexpected error occurred: {}".format(e))

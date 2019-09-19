@@ -1,5 +1,5 @@
 import os
-from Queue import Queue
+from queue import Queue
 import logging
 from time import time
 
@@ -14,13 +14,14 @@ class HydraParser(object):
         try:
             entries = [dirname + "/" + i for i in os.listdir(dirname)]
             filter_fn = lambda x: all([not os.path.isdir(x),
+                                       not x.endswith(".md"),
                                        not x.endswith(".gz"),
                                        not x.endswith(".bz2")])
             files = filter(filter_fn, entries)
             files = list(files)
             return files
         except Exception as e:
-            print "Exception occurred: {}".format(e)
+            print("Exception occurred: {}").format(e)
             raise Exception(e)
 
     def search(self, dirname, pattern):
@@ -40,4 +41,4 @@ class HydraParser(object):
 
         queue.join()
         t2 = time()
-        print "Searching for {} in the directory {} took {} seconds".format(pattern, dirname, (t2-t1))
+        print("Searching for {} in the directory {} took {} seconds".format(pattern, dirname, (t2-t1)))

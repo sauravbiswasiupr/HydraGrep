@@ -3,7 +3,7 @@ from queue import Queue
 import logging
 from time import time
 
-from TaskRunner import TaskRunner
+from taskrunner import TaskRunner
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -42,3 +42,8 @@ class HydraParser(object):
         queue.join()
         t2 = time()
         print("Searching for {} in the directory {} took {} seconds".format(pattern, dirname, (t2-t1)))
+
+
+if __name__ == "__main__":
+    parser = HydraParser()
+    parser.search("/var/log", "saurav")

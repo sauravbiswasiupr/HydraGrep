@@ -1,8 +1,11 @@
 import re
 from threading import Thread
+import logging
 
 from termcolor import colored
 
+logging.basicConfig(level=logging.INFO, format=None)
+logger = logging.getLogger(__name__)
 
 class TaskRunner(Thread):
     def __init__(self, queue):
@@ -14,8 +17,9 @@ class TaskRunner(Thread):
             filename, pattern = self.queue.get()
             results = self.parse_log_for_pattern(filename, pattern)
             if results:
+                logger.info(colored(filename, 'green'))
                 for i in results:
-                    print(i.replace(pattern, colored(pattern, 'red')))
+                    logger.info(i.replace(pattern, colored(pattern, 'red')))
 
             self.queue.task_done()
 
@@ -33,21 +37,8 @@ class TaskRunner(Thread):
     def parse_log_for_pattern(self, log_file, pattern):
         try:
             f = open(log_file)
+
             return self.search_occurrences(pattern, f.readlines())
         except Exception as e:
             print(e)
             return None
-
-    def search(self, directory, pattern):
-        try:
-            results = []
-            files = self.list_files_in_dir(directory)
-
-            for file in files:
-                search_res = self.parse_log_for_pattern(file, pattern)
-                for res in search_res:
-                    results.append(res)
-
-            return results
-        except Exception as e:
-            print("Unexpected error occurred: {}".format(e))

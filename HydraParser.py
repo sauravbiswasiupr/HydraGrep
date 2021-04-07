@@ -1,6 +1,8 @@
 import os
+import sys
 from queue import Queue
 import logging
+import glob
 from time import time
 
 from taskrunner import TaskRunner
@@ -8,35 +10,44 @@ from taskrunner import TaskRunner
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+IGNORED_FILES = lambda x: all([not x.endswith(".md"),not x.endswith(".gz"), 
+    not x.endswith(".bz2"), not x.endswith(".zip"), not x.endswith("pdf"), not x.endswith("jpg"), not x.endswith("png")])
+
+THREAD_COUNT = 16
+MAX_DEPTH = 4
 
 class HydraParser(object):
     def __list_files_in_dir(self, dirname):
         try:
             entries = [dirname + "/" + i for i in os.listdir(dirname)]
-            filter_fn = lambda x: all([not os.path.isdir(x),
-                                       not x.endswith(".md"),
-                                       not x.endswith(".gz"),
-                                       not x.endswith(".bz2")])
-            files = filter(filter_fn, entries)
-            files = list(files)
-            return files
+            return list(filter(IGNORED_FILES, entries))
         except Exception as e:
-            print("Exception occurred: {}").format(e)
-            raise Exception(e)
+            logger.error("Exception occurred: {}", e)
+            sys.exit(1)
+    
+    def recursively_get_files(self, dirname, results, level_count):
+        if level_count == MAX_DEPTH:
+            return
+        
+        files = self.__list_files_in_dir(dirname)
+        for file in files:
+            if os.path.isdir(file):
+                self.recursively_get_files(file, results, level_count + 1)
+            else:
+                results.append(file)
 
     def search(self, dirname, pattern):
         t1 = time()
         queue = Queue()
-        files = self.__list_files_in_dir(dirname)
-        thread_count = 4 # len(files)
+        results = list()
+        self.recursively_get_files(dirname, results, 0)
 
-        for x in range(thread_count):
+        for x in range(THREAD_COUNT):
             runner = TaskRunner(queue)
             runner.daemon = True
             runner.start()
 
-        for file in files:
-            logger.info("Queuing file: {}".format(file))
+        for file in results:
             queue.put((file, pattern))
 
         queue.join()
@@ -46,4 +57,4 @@ class HydraParser(object):
 
 if __name__ == "__main__":
     parser = HydraParser()
-    parser.search("/var/log", "saurav")
+    parser.search("/Users/saurav/Projects", "test")

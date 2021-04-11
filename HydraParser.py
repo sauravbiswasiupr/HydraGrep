@@ -1,8 +1,7 @@
-import os
+from pathlib import Path
 import sys
 from queue import Queue
 import logging
-import glob
 from time import time
 
 from taskrunner import TaskRunner
@@ -10,8 +9,8 @@ from taskrunner import TaskRunner
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-IGNORED_FILES = lambda x: all([not x.endswith(".md"),not x.endswith(".gz"), 
-    not x.endswith(".bz2"), not x.endswith(".zip"), not x.endswith("pdf"), not x.endswith("jpg"), not x.endswith("png")])
+IGNORED_FILE_TYPE_EXTENSIONS = frozenset([".md", ".gz", ".bz2", ".zip", ".pdf", ".jpg", ".png"])
+IGNORED_FILES = lambda x: not x.suffix in IGNORED_FILE_TYPE_EXTENSIONS
 
 THREAD_COUNT = 16
 MAX_DEPTH = 4
@@ -19,7 +18,7 @@ MAX_DEPTH = 4
 class HydraParser(object):
     def __list_files_in_dir(self, dirname):
         try:
-            entries = [dirname + "/" + i for i in os.listdir(dirname)]
+            entries = [i.resolve() for i in Path(dirname).iterdir()]
             return list(filter(IGNORED_FILES, entries))
         except Exception as e:
             logger.error("Exception occurred: {}", e)
@@ -31,7 +30,7 @@ class HydraParser(object):
         
         files = self.__list_files_in_dir(dirname)
         for file in files:
-            if os.path.isdir(file):
+            if file.is_dir():
                 self.recursively_get_files(file, results, level_count + 1)
             else:
                 results.append(file)

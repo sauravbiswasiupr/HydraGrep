@@ -1,18 +1,20 @@
+import concurrent.futures
 from pathlib import Path
 import sys
-from queue import Queue
 import logging
 from time import time
+from argparse import ArgumentParser
 
-from taskrunner import TaskRunner
+from pattern_searcher import PatternSearcher
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-IGNORED_FILE_TYPE_EXTENSIONS = frozenset([".md", ".gz", ".bz2", ".zip", ".pdf", ".jpg", ".png"])
+IGNORED_FILE_TYPE_EXTENSIONS = frozenset([".md", ".gz", ".bz2", ".zip", ".pdf", ".jpg", ".png", ".js", ".txt", ".css"])
 IGNORED_FILES = lambda x: not x.suffix in IGNORED_FILE_TYPE_EXTENSIONS
+OPTIMIZED_CHUNKSIZE = 500
 
-THREAD_COUNT = 16
+THREAD_COUNT = 1
 MAX_DEPTH = 4
 
 class HydraParser(object):
@@ -30,30 +32,31 @@ class HydraParser(object):
         
         files = self.__list_files_in_dir(dirname)
         for file in files:
-            if file.is_dir():
+            if file.parts[-1].startswith("."):
+                continue
+            elif file.is_dir():
                 self.recursively_get_files(file, results, level_count + 1)
             else:
                 results.append(file)
 
     def search(self, dirname, pattern):
         t1 = time()
-        queue = Queue()
         results = list()
         self.recursively_get_files(dirname, results, 0)
+        print("results: ", len(results))
+        pattern_searcher = PatternSearcher(pattern)
+        # run parallel searches using a concurrent process pool executor
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            executor.map(pattern_searcher.search_in_file, results, chunksize=OPTIMIZED_CHUNKSIZE)
 
-        for x in range(THREAD_COUNT):
-            runner = TaskRunner(queue)
-            runner.daemon = True
-            runner.start()
-
-        for file in results:
-            queue.put((file, pattern))
-
-        queue.join()
         t2 = time()
         print("Searching for {} in the directory {} took {} seconds".format(pattern, dirname, (t2-t1)))
 
 
 if __name__ == "__main__":
-    parser = HydraParser()
-    parser.search("/Users/saurav/Projects", "test")
+    hydra = HydraParser()
+    parser = ArgumentParser()
+    parser.add_argument('-d', dest='basedir', default='.', help='Directory to invoke hydragrep')
+    parser.add_argument('-p', dest='pattern', default='bazinga', help='Pattern to search')
+    args = parser.parse_args()
+    hydra.search(args.basedir, args.pattern)

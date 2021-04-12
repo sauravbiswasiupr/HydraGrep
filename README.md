@@ -7,6 +7,17 @@ Welcome to HydraGrep. HydraGrep is a grep like utility that lets you search for 
 in single files or directories containing files. It is by no means a distributed log search engine
 (atleast as of now). It uses multiprocessing to search for the requested pattern recursively, starting from the provided directory.
 
+Usage
+------
+
+```
+hydragrep.py [-h] [-d BASEDIR] [-p PATTERN]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -d BASEDIR  Directory to invoke hydragrep
+  -p PATTERN  Pattern to search
+```
 Differences with UNIX grep
 --------------------------
 

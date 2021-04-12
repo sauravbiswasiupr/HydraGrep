@@ -1,6 +1,8 @@
 Introduction
 ============
 
+![Hydra](https://i.pinimg.com/originals/d2/be/b0/d2beb00d381c5bcc043178312824f858.jpg)
+
 Welcome to HydraGrep. HydraGrep is a grep like utility that lets you search for patterns 
 in single files or directories containing files. It is by no means a distributed log search engine
 (atleast as of now). It uses multiprocessing to search for the requested pattern recursively, starting from the provided directory.

@@ -15,5 +15,5 @@ Inherently, UNIX grep is not parallelizable by default. It needs to be invoked w
 Inspiration
 -----------
 
-The name HydraParser is inspired by the Greek Mythological beast called Hydra which was a serpentine monster
+The name HydraGrep is inspired by the Greek Mythological beast called Hydra which was a serpentine monster
 with many heads. The heads are analogous to the many threads it uses to run the scans.

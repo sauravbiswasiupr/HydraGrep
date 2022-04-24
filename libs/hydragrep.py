@@ -1,21 +1,23 @@
 import concurrent.futures
+import glob
 import os
 from pathlib import Path
 import sys
 import logging
 from time import time
-from argparse import ArgumentParser
-from pprint import pprint
 from time import time
 
-from pattern_searcher import PatternSearcher
+logging.basicConfig(level=logging.INFO, format=None)
+logger = logging.getLogger(__name__)
+
+from libs.pattern_searcher import PatternSearcher
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 IGNORED_FILE_TYPE_EXTENSIONS = frozenset([".md", ".gz", ".bz2", ".zip", ".pdf", ".jpg", ".png", ".txt", ".css", ".pyc"])
+IGNORED_FOLDERS = frozenset(["node_modules", "Library", "Envs"])
 IGNORED_FILES = lambda x: not x.suffix in IGNORED_FILE_TYPE_EXTENSIONS
-OPTIMIZED_CHUNKSIZE = 500
 
 THREAD_COUNT = 1
 MAX_DEPTH = 10
@@ -34,9 +36,8 @@ class HydraParser(object):
     
     def accessible(self, dir):
         return os.path.isdir(dir) and os.access(dir, os.R_OK) and not os.path.basename(dir).startswith(".") \
-            and not os.path.basename(dir).startswith("node_modules") \
-                and not os.path.basename(dir).startswith("Library")  \
-                    and not os.path.basename(dir).startswith("Envs")
+            and not any([os.path.basename(dir).startswith(i) for i in IGNORED_FOLDERS])
+
     
     def build_directory_index(self, dir):
         t1 = time()
@@ -57,9 +58,9 @@ class HydraParser(object):
         return subfolders
 
     def recursively_get_files(self, dirname, results, level_count):
-        if level_count == MAX_DEPTH:
+        if level_count == MAX_DEPTH or not self.accessible(dirname):
             return
-        
+            
         files = self.__list_files_in_dir(dirname)
         for file in files:
             if file.parts[-1].startswith("."):
@@ -70,21 +71,13 @@ class HydraParser(object):
                 results.append(file)
 
     def search(self, dirname, pattern):
-        results = list()
-        self.recursively_get_files(dirname, results, 0)
         pattern_searcher = PatternSearcher(pattern)
-        # run parallel searches using a concurrent process pool executor
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            for r in executor.map(pattern_searcher.search_in_file, results, chunksize=OPTIMIZED_CHUNKSIZE):
-                if not r:
-                    continue
-                else:
-                    yield r
+        results = list(filter(lambda f: os.path.isfile(f), glob.iglob("{}{}**".format(os.path.abspath(dirname), os.path.sep), recursive=True)))
+        chunksize = 512
+        logger.info("Processing all files under {} in chunks of {} files".format(dirname, chunksize))
 
-if __name__ == "__main__":
-    hydra = HydraParser()
-    parser = ArgumentParser()
-    parser.add_argument('-d', dest='basedir', default='.', help='Directory to invoke hydragrep')
-    parser.add_argument('-p', dest='pattern', default='bazinga', help='Pattern to search')
-    args = parser.parse_args()
-    hydra.search(args.basedir, args.pattern)
+        # run parallel searches using a concurrent process pool executor
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+            futures = executor.map(pattern_searcher.search_in_file, results, chunksize=int(chunksize))
+            for future in futures:
+                yield future or  {}
